@@ -1,0 +1,15 @@
+**/__pycache__/
+databathing.egg-info
+dist
+*.log
+*.pyc
+*.tab
+out
+.idea
+.svn
+*.iml
+/build
+vendor/
+._*
+.DS_Store
+.eggs
