@@ -1,7 +1,7 @@
 # More SQL Parsing!
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/databathing.svg)](https://pypi.org/project/databathing/)
-[![Build Status](https://circleci.com/gh/jason-jz-zhu/databathing/tree/master.svg?style=svg)](https://app.circleci.com/pipelines/github/jason-jz-zhu/databathing)
+[![Build Status](https://circleci.com/gh/jason-jz-zhu/databathing/tree/main.svg?style=svg)](https://app.circleci.com/pipelines/github/jason-jz-zhu/databathing)
 
 
 Parse SQL into JSON so we can translate it for other datastores!

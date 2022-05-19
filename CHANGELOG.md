@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.1.2] - 2022-05-18
 ## [0.1.3] - 2022-05-19
+## [0.2.0] - 2022-05-19
 
 ### Added
+- databathing basic verison
 - circleci
