@@ -16,10 +16,10 @@ jobs:
       - checkout
       - run:
           command: |
-          sudo pip install pipenv
-          pipenv install -r tests/requirements.txt
-          pipenv install .
-          pipenv run python -m unittest discover tests
+            sudo pip install pipenv
+            pipenv install -r tests/requirements.txt
+            pipenv install .
+            pipenv run python -m unittest discover tests
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
