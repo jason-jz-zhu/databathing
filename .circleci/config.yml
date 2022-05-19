@@ -5,7 +5,7 @@ version: 2.1
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  build-test:
+  build_test:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
@@ -20,10 +20,47 @@ jobs:
             pipenv install -r tests/requirements.txt
             pipenv install .
             pipenv run python -m unittest discover tests
+  test_pypi_publish:
+    docker:
+      - image: circleci/python:3.7.9
+    steps:
+      - checkout  # checkout source code to working directory
+      - run:
+          command: |  # create whl, install twine and publish to Test PyPI
+            python setup.py sdist bdist_wheel
+            sudo pip install pipenv
+            pipenv install twine
+            pipenv run twine upload --repository testpypi dist/*
+  pypi_publish:
+    docker:
+      - image: ccircleci/python:3.7.9
+    steps:
+      - checkout  # checkout source code to working directory
+      - run:
+          command: |  # create whl, install twine and publish to PyPI
+            python setup.py sdist bdist_wheel
+            sudo pip install pipenv
+            pipenv install twine
+            pipenv run twine upload dist/*
+
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  build-test-workflow:
+  build_test_publish:
     jobs:
-      - build-test
+      - build_test
+      - test_pypi_publish:
+          requires:
+            - build_test
+          filters:
+            branches:
+              only:
+                - develop
+      - pypi_publish:
+          requires:
+            - build_test
+          filters:
+            branches:
+              only:
+                - main

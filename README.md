@@ -1,12 +1,12 @@
 # More SQL Parsing!
 
-[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-sql-parsing.svg)](https://pypi.org/project/mo-sql-parsing/)
-[![Build Status](https://app.travis-ci.com/klahnakoski/mo-sql-parsing.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-sql-parsing)
+[![PyPI Latest Release](https://img.shields.io/pypi/v/databathing.svg)](https://pypi.org/project/databathing/)
+[![Build Status](https://circleci.com/gh/jason-jz-zhu/databathing/tree/master.svg?style=svg)](https://app.circleci.com/pipelines/github/jason-jz-zhu/databathing)
 
 
 Parse SQL into JSON so we can translate it for other datastores!
 
-[See changes](https://github.com/klahnakoski/mo-sql-parsing#version-changes)
+[See changes](https://github.com/jason-jz-zhu/databathing#version-changes)
 
 
 ## Problem Statement
@@ -24,7 +24,7 @@ We plan to combine the benefits from Spark and YAML (SQL) to create the platform
 
 ## Project Status
 
-May 2022 - There are [over 900 tests](https://app.travis-ci.com/github/klahnakoski/mo-sql-parsing). This parser is good enough for basic usage, including:
+May 2022 - There are [over 900 tests](https://app.circleci.com/pipelines/github/jason-jz-zhu/databathing). This parser is good enough for basic usage, including:
 * `SELECT` feature
 * `FROM` feature
 * `INNER` JOIN and LEFT JOIN feature
@@ -55,10 +55,12 @@ You may also generate PySpark Code from the a given SQL Query. This is done by t
 
 In the event that the databathing is not working for you, you can help make this better but simply pasting your sql (or JSON) into a new issue. Extra points if you describe the problem. Even more points if you submit a PR with a test. If you also submit a fix, then you also have my gratitude. 
 
+Please follow this blog to update verion - https://circleci.com/blog/publishing-a-python-package/
+
 
 ### Run Tests
 
-See [the tests directory](https://github.com/klahnakoski/mo-sql-parsing/tree/dev/tests) for instructions running tests, or writing new ones.
+See [the tests directory](https://github.com/jason-jz-zhu/databathing/tree/develop/tests) for instructions running tests, or writing new ones.
 
 ## Version Changes
 

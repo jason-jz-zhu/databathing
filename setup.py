@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='databathing',
-    version='0.1.2',
+    version='0.1.3',
     description="build spark job based on query",
     author="Jiazhen Zhu",
     author_email="jason.jz.zhu@gmail.com",
