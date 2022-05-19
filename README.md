@@ -25,18 +25,18 @@ We plan to combine the benefits from Spark and YAML (SQL) to create the platform
 ## Project Status
 
 May 2022 - There are [over 900 tests](https://app.travis-ci.com/github/klahnakoski/mo-sql-parsing). This parser is good enough for basic usage, including:
-    * `SELECT` feature
-    * `FROM` feature
-    * `INNER` JOIN and LEFT JOIN feature
-    * `ON` feature
-    * `WHERE` feature
-    * `GROUP BY` feature
-    * `HAVING` feature
-    * `ORDER BY` feature
-    * `AGG` feature
-    * WINDOWS FUNCTION feature (`SUM`, `AVG`, `MAX`, `MIN`, `MEAN`, `COUNT`)
-    * ALIAS NAME feature
-    * `WITH` STATEMENT feature
+* `SELECT` feature
+* `FROM` feature
+* `INNER` JOIN and LEFT JOIN feature
+* `ON` feature
+* `WHERE` feature
+* `GROUP BY` feature
+* `HAVING` feature
+* `ORDER BY` feature
+* `AGG` feature
+* WINDOWS FUNCTION feature (`SUM`, `AVG`, `MAX`, `MIN`, `MEAN`, `COUNT`)
+* ALIAS NAME feature
+* `WITH` STATEMENT feature
 
 ## Install
 

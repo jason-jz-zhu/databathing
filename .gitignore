@@ -13,3 +13,6 @@ vendor/
 ._*
 .DS_Store
 .eggs
+.pytest_cache
+Pipfile
+Pipfile.lock
