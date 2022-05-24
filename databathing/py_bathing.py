@@ -1,10 +1,8 @@
 from curses import nonl
-from mo_sql_parsing import parse
-# from mo_sql_parsing import parse_bigquery as parse
+# from mo_sql_parsing import parse
+from mo_sql_parsing import parse_bigquery as parse
 from mo_sql_parsing import format
 import json
-
-
 
 
 class py_bathing:
@@ -21,7 +19,7 @@ class py_bathing:
         self.agg_ans = ""
         self.having_ans = ""
         self.orderby_ans = ""
-        self.agg_list = ["sum", "avg", "max", "min", "mean", "count"]
+        self.agg_list = ["sum", "avg", "max", "min", "mean", "count", "collect_list", "collect_set"]
 
 
     def _from_analyze(self, from_stmt):
@@ -53,6 +51,8 @@ class py_bathing:
                 self._from_analyze(item_from)    
     
     def _select_analyze(self, select_stmt):
+        # print(select_stmt)
+
         if not select_stmt:
             return
 
@@ -65,6 +65,8 @@ class py_bathing:
         if type(select_stmt) is dict:
             if list(select_stmt["value"].keys())[0].lower() in self.agg_list:
                 self.select_ans  += "\""+ select_stmt['name'] +"\","
+            elif list(select_stmt["value"].keys())[0].lower() == "create_struct":
+                self.select_ans  += "\"" + format({ "select": select_stmt })[14:] + "\","
             else:
                 self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
         elif type(select_stmt) is list and (self.level_select == 0):
@@ -80,10 +82,18 @@ class py_bathing:
         self.groupby_ans = format({ "groupby": groupby_stmt })[9:]
 
     def _agg_analyze(self, agg_stmt):
-        for item in agg_stmt:
-            if type(item["value"]) is dict and list(item["value"].keys())[0].lower() in self.agg_list:
-                for funct, alias in item["value"].items():
-                    self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, item["name"])
+        if type(agg_stmt) is dict:
+            if type(agg_stmt["value"]) is dict and list(agg_stmt["value"].keys())[0].lower() in self.agg_list:
+                for funct, alias in agg_stmt["value"].items():
+                    self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, agg_stmt["name"])
+
+        elif type(agg_stmt) is list:
+            for item in agg_stmt:
+                self._agg_analyze(item)
+
+                # if type(item["value"]) is dict and list(item["value"].keys())[0].lower() in self.agg_list:
+                #     for funct, alias in item["value"].items():
+                #         self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, item["name"])
                     
         self.agg_ans = self.agg_ans.replace("\n", "")
 
@@ -180,19 +190,21 @@ class py_bathing:
 
 # query = """
 #         SELECT 
-#             t1.id as id, 
-#             t1.val as t1_val,
-#             t2.val as t1_val
-#         FROM Test t1
-#         LEFT JOIN Test t2
-#         ON t1.id = t2.id
+#             distinct glbl_ptnt_id, 
+#             patient_name,
+#             split(patient_name, ',')[0] as first_name,
+#             split(patient_name, ',')[1] as last_name,
+#             struct(first_name as firstname, last_name as lastname) as patient_name_info
+#         FROM overviewDF
+#         WHERE patient_name != ''
+#         ORDER BY filled_date desc
 #         """
 
 
 # parsed_whole_query = parse(query)
 # parsed_json_whole_query = json.loads(json.dumps(parsed_whole_query,indent=4))
 
-# print(parsed_json_whole_query)
+# # print(parsed_json_whole_query)
 
 # dbing = py_bathing(parsed_json_whole_query)
 # ans = dbing.parse()
