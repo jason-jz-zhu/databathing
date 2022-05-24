@@ -1,6 +1,6 @@
 from curses import nonl
-from mo_sql_parsing import parse
-# from mo_sql_parsing import parse_bigquery as parse
+# from mo_sql_parsing import parse
+from mo_sql_parsing import parse_bigquery as parse
 from mo_sql_parsing import format
 import json
 import copy
@@ -10,6 +10,7 @@ from databathing.py_bathing import py_bathing
 
 class Pipeline:
     def __init__(self, query):
+        # print(query)
         self.parsed_whole_query = parse(query)
         self.parsed_json_whole_query = json.loads(json.dumps(self.parsed_whole_query,indent=4))
         self.parsed_json_whole_query = self.parsed_json_whole_query
@@ -19,8 +20,11 @@ class Pipeline:
     def gen_with_pipeline(self, query):
         if "with" in query:
             with_stmts =  query["with"]
-            for with_stmt in with_stmts:
-                self.gen_with_pipeline(with_stmt)   
+            if type(with_stmts) is dict:
+                self.gen_with_pipeline(with_stmts)
+            else:
+                for with_stmt in with_stmts:
+                    self.gen_with_pipeline(with_stmt)   
         else:
             dbing = py_bathing(query["value"])
             self.with_ans += query["name"] + " = " + dbing.parse() + "\n\n"
@@ -96,6 +100,30 @@ class Pipeline:
 #         ORDER BY b.id, a.id desc
 # """
 
+
+
+# query = """
+#     WITH namePreDF AS (
+#         SELECT 
+#             distinct glbl_ptnt_id, 
+#             patient_name,
+#             struct(split(patient_name, ',')[0] as firstname, split(patient_name, ',')[1] as lastname) as patient_name_info
+#         FROM overviewDF
+#         WHERE patient_name != ''
+#         ORDER BY filled_date desc
+#         )
+#         SELECT
+#             glbl_ptnt_id,
+#             collect_set(patient_name_info) as patient_name_info
+#         FROM namePreDF
+#         GROUP BY glbl_ptnt_id
+#         """
+
+# query = """
+#             SELECT 
+#                 struct(firstname as firstname, lastname as lastname) as name
+#             FROM df
+# """
 
 # pipeline = Pipeline(query)
 
