@@ -4,9 +4,6 @@ from mo_sql_parsing import parse_bigquery as parse
 from mo_sql_parsing import format
 import json
 
-from pyspark.sql.functions import collect_set
-
-
 
 class py_bathing:
     def __init__(self, parsed_json_whole_query):
