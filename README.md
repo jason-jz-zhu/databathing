@@ -48,7 +48,7 @@ May 2022 - There are [over 900 tests](https://app.circleci.com/pipelines/github/
 You may also generate PySpark Code from the a given SQL Query. This is done by the Pipeline, which is in Version 1 state (May2022).
 
     >>> from databathing import Pipeline
-    >>> pipeline = Pipeline("SELECT * FROM Test WHERE info = 1")
+    >>> pipeline = pipeline.Pipeline("SELECT * FROM Test WHERE info = 1")
     'final_df = Test\\\n.filter("info = 1")\\\n.selectExpr("a","b","c")\n\n'
 
 ## Contributing
