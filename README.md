@@ -49,6 +49,7 @@ You may also generate PySpark Code from the a given SQL Query. This is done by t
 
     >>> from databathing import pipeline
     >>> pipeline = pipeline.Pipeline("SELECT * FROM Test WHERE info = 1")
+    >>> ans = pipeline.parse()
     'final_df = Test\\\n.filter("info = 1")\\\n.selectExpr("a","b","c")\n\n'
 
 ## Contributing
