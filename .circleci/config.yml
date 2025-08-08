@@ -33,8 +33,10 @@ jobs:
           # pip-dependency-file: test-requirements.txt  # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
       - run:
           name: Run tests
-          # This assumes pytest is installed via the install-package step above
-          command: pytest
+          # This project uses unittest, not pytest
+          command: |
+            export PYTHONPATH=.
+            python -m unittest discover tests
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
