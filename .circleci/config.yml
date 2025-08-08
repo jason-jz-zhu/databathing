@@ -11,7 +11,7 @@ orbs:
   # See the Python orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
   python: circleci/python@2.1.1
 
-# Define a job to be invoked later in a workflow.
+# Define jobs to be invoked later in a workflow.
 # See: https://circleci.com/docs/jobs-steps/#jobs-overview & https://circleci.com/docs/configuration-reference/#jobs
 jobs:
   build-and-test:
@@ -38,10 +38,51 @@ jobs:
             export PYTHONPATH=.
             python -m unittest discover tests
 
+  test-pypi-publish:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Build and publish to Test PyPI
+          command: |
+            pip install build twine
+            python -m build
+            python -m twine upload --repository testpypi dist/*
+
+  pypi-publish:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Build and publish to PyPI
+          command: |
+            pip install build twine
+            python -m build
+            python -m twine upload dist/*
+
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
 workflows:
-  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
-    # Inside the workflow, you define the jobs you want to run.
+  build-test-publish:
     jobs:
       - build-and-test
+      - test-pypi-publish:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only:
+                - develop
+      - pypi-publish:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only:
+                - main
