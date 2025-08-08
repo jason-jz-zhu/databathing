@@ -50,7 +50,7 @@ jobs:
           command: |
             pip install build twine
             python -m build
-            python -m twine upload --repository testpypi dist/*
+            python -m twine upload --repository testpypi dist/* --username __token__ --password $TESTPYPI_API_TOKEN
 
   pypi-publish:
     docker:
@@ -64,7 +64,7 @@ jobs:
           command: |
             pip install build twine
             python -m build
-            python -m twine upload dist/*
+            python -m twine upload dist/* --username __token__ --password $PYPI_API_TOKEN
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/workflows/ & https://circleci.com/docs/configuration-reference/#workflows
