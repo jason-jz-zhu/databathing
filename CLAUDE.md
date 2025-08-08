@@ -80,3 +80,7 @@ final_df = Test\
 - The code generates PySpark DataFrame operations as string concatenations
 - Supports complex queries with subqueries via WITH statements
 - Window functions and aggregations are handled through the agg_list configuration
+
+## Git Commit Guidelines
+
+- Simply don't include the "Co-Authored-By: Claude" line in commit messages
