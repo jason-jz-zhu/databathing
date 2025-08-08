@@ -8,7 +8,7 @@ import json
 class py_bathing:
     def __init__(self, parsed_json_whole_query):
         self.parsed_json_whole_query = parsed_json_whole_query
-
+        print(f"""self.parsed_json_whole_query: {self.parsed_json_whole_query}""")
         self.distinct_flag = False
         self.from_ans = ""
         self.select_ans = ""
@@ -51,7 +51,7 @@ class py_bathing:
                 self._from_analyze(item_from)    
     
     def _select_analyze(self, select_stmt):
-        # print(select_stmt)
+        print(f"""select_stmt: {select_stmt}""")
 
         if not select_stmt:
             return
@@ -144,6 +144,7 @@ class py_bathing:
 
             #handle select
             elif str(method).lower() in ["select", "select_distinct"]:
+                print(f"""stmt: {stmt}""")
                 self._select_analyze(stmt)
                 select_final_ans = self.select_ans[:-1]
                 self.distinct_flag = True if str(method) == "select_distinct" else  False
