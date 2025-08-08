@@ -59,13 +59,13 @@ class py_bathing:
         if  type(select_stmt) is str:
             self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
             return  
-        if type(select_stmt) is dict and type(select_stmt['value']) is str:
+        if type(select_stmt) is dict and 'value' in select_stmt and type(select_stmt['value']) is str:
             self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
             return
         if type(select_stmt) is dict:
-            if list(select_stmt["value"].keys())[0].lower() in self.agg_list:
+            if 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() in self.agg_list:
                 self.select_ans  += "\""+ select_stmt['name'] +"\","
-            elif list(select_stmt["value"].keys())[0].lower() == "create_struct":
+            elif 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() == "create_struct":
                 self.select_ans  += "\"" + format({ "select": select_stmt })[14:] + "\","
             else:
                 self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
