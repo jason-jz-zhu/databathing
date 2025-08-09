@@ -1,8 +1,4 @@
-from curses import nonl
-# from mo_sql_parsing import parse
-from mo_sql_parsing import parse_bigquery as parse
 from mo_sql_parsing import format
-import json
 
 
 class py_bathing:
@@ -19,6 +15,7 @@ class py_bathing:
         self.agg_ans = ""
         self.having_ans = ""
         self.orderby_ans = ""
+        self.set_operation_ans = ""
         self.agg_list = ["sum", "avg", "max", "min", "mean", "count", "collect_list", "collect_set"]
 
 
@@ -116,14 +113,72 @@ class py_bathing:
     def _limit_analyze(self, limit_stmt):
         self.limit_ans = limit_stmt
 
+    def _set_operation_analyze(self, operation_type, queries_list):
+        """Handle UNION, UNION ALL, INTERSECT, EXCEPT operations"""
+        if not queries_list or len(queries_list) < 2:
+            return
+        
+        # Generate PySpark code for each subquery in the set operation
+        subquery_results = []
+        for query in queries_list:
+            # Create a new py_bathing instance for each subquery
+            subquery_parser = py_bathing(query)
+            subquery_code = subquery_parser.parse()
+            subquery_results.append(f"({subquery_code})")
+        
+        # Combine subqueries with appropriate PySpark set operation
+        if operation_type == "union":
+            # UNION in SQL = union().distinct() in PySpark
+            base_df = subquery_results[0]
+            for subquery in subquery_results[1:]:
+                base_df = f"{base_df}.union({subquery})"
+            self.set_operation_ans = f"{base_df}.distinct()"
+            
+        elif operation_type == "union_all":
+            # UNION ALL in SQL = union() in PySpark
+            base_df = subquery_results[0]
+            for subquery in subquery_results[1:]:
+                base_df = f"{base_df}.union({subquery})"
+            self.set_operation_ans = base_df
+            
+        elif operation_type == "intersect":
+            # INTERSECT in SQL = intersect() in PySpark
+            base_df = subquery_results[0]
+            for subquery in subquery_results[1:]:
+                base_df = f"{base_df}.intersect({subquery})"
+            self.set_operation_ans = base_df
+            
+        elif operation_type == "except":
+            # EXCEPT in SQL = except() in PySpark (or subtract())
+            base_df = subquery_results[0]
+            for subquery in subquery_results[1:]:
+                base_df = f"{base_df}.exceptAll({subquery})"
+            self.set_operation_ans = base_df
+
     def parse(self):
-        from_final_ans = where_final_ans = groupby_final_ans = agg_final_ans = select_final_ans = orderby_final_ans = limit_final_ans = having_final_ans = ""
+        from_final_ans = where_final_ans = groupby_final_ans = agg_final_ans = select_final_ans = orderby_final_ans = limit_final_ans = having_final_ans = set_operation_final_ans = ""
+
+        # Check if this is a set operation query first
+        set_operations = ["union", "union_all", "intersect", "except"]
+        for op in set_operations:
+            if op in self.parsed_json_whole_query:
+                self._set_operation_analyze(op, self.parsed_json_whole_query[op])
+                set_operation_final_ans = self.set_operation_ans
+                break
 
         for method, stmt in self.parsed_json_whole_query.items():
             # handle from
             if str(method).lower() == "from":
-                self._from_analyze(stmt)
-                from_final_ans = self.from_ans[:-1] if self.from_ans[-1] == '.' else self.from_ans
+                # Check if this FROM contains a set operation
+                if isinstance(stmt, dict):
+                    for op in set_operations:
+                        if op in stmt:
+                            self._set_operation_analyze(op, stmt[op])
+                            set_operation_final_ans = self.set_operation_ans
+                            break
+                if not set_operation_final_ans:
+                    self._from_analyze(stmt)
+                    from_final_ans = self.from_ans[:-1] if self.from_ans and self.from_ans[-1] == '.' else self.from_ans
 
             #handle where
             elif str(method).lower() == "where":
@@ -164,6 +219,16 @@ class py_bathing:
                 self._limit_analyze(stmt)
                 limit_final_ans = self.limit_ans
 
+        # If we found a set operation, apply additional clauses to it
+        if set_operation_final_ans:
+            final_ans = set_operation_final_ans
+            if orderby_final_ans:
+                final_ans += "\n.orderBy("+orderby_final_ans+")"
+            if limit_final_ans:
+                final_ans += "\n.limit("+str(limit_final_ans)+")"
+            return final_ans
+
+        # Regular query processing
         final_ans = ""
         if from_final_ans:
             final_ans += from_final_ans + "\\"
