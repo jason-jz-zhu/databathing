@@ -19,6 +19,27 @@ class py_bathing:
         self.agg_list = ["sum", "avg", "max", "min", "mean", "count", "collect_list", "collect_set"]
 
 
+    def _joinfeat(self, from_stmt, srcjointype, dstjointype):
+        if "cross join" in from_stmt.keys():
+            return "crossJoin({}).".format( 
+                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")")
+
+        elif "and" in from_stmt['on']:
+            eachand = []
+            for theandvalue in from_stmt['on']['and']:
+                eachand.append("col(\""+str(theandvalue['eq'][0])+"\")" + "==" + "col(\""+str(theandvalue['eq'][1])+"\")" )
+            return "join({}, {}, \"{}\").".format( 
+                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")", 
+                " & ".join(eachand) , 
+                dstjointype)
+        else:
+            eachand = "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")"
+            thereturn = "join({}, {}, \"{}\").".format( 
+                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")", 
+                eachand , 
+                dstjointype)
+            return thereturn
+
     def _from_analyze(self, from_stmt):
         if not from_stmt:
             return 
@@ -27,21 +48,12 @@ class py_bathing:
         elif type(from_stmt) is dict:
             if "name" in from_stmt.keys():
                 self.from_ans += from_stmt['value']+".alias(\""+from_stmt['name']+"\")."
-            elif "left join" in from_stmt.keys():
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['left join']['value']+".alias(\""+from_stmt['left join']['name']+"\")", 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'left')
+            elif "left join" in from_stmt.keys(): 
+                self.from_ans += self._joinfeat(from_stmt, 'left', 'left')
             elif "inner join" in from_stmt.keys():
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['inner join']['value']+".alias(\""+from_stmt['inner join']['name']+"\")", 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'inner')
+                self.from_ans += self._joinfeat(from_stmt, 'inner', 'inner')
             elif "right join" in from_stmt.keys():
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['right join']['value']+".alias(\""+from_stmt['right join']['name']+"\")", 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'right')
+                self.from_ans += self._joinfeat(from_stmt, 'right', 'right')
                 
         elif type(from_stmt) is list:
             for item_from in from_stmt:
