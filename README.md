@@ -83,6 +83,92 @@ Generate PySpark Code from SQL queries using the Pipeline. Supports complex quer
 - **INTERSECT** - Returns only records that exist in both queries
 - **EXCEPT** - Returns records from first query that don't exist in second
 
+## DuckDB Engine Support (New!)
+
+DataBathing now supports DuckDB as an alternative execution engine alongside PySpark. Generate DuckDB Python code from SQL queries for in-memory columnar processing.
+
+### Quick Start with DuckDB
+```python
+>>> from databathing import Pipeline
+>>> 
+>>> # Generate DuckDB code
+>>> query = "SELECT name, age FROM users WHERE age > 25 ORDER BY name LIMIT 10"
+>>> pipeline = Pipeline(query, engine="duckdb")
+>>> duckdb_code = pipeline.parse()
+>>> print(duckdb_code)
+'result = duckdb.sql("SELECT name,age FROM users WHERE age > 25 ORDER BY name ASC LIMIT 10")'
+>>> 
+>>> # Compare with PySpark (default behavior)
+>>> spark_pipeline = Pipeline(query, engine="spark")  # or just Pipeline(query)
+>>> spark_code = spark_pipeline.parse()
+>>> print(spark_code)
+'final_df = users\\.filter("age > 25")\\.selectExpr("name","age")\\.orderBy(col("name").asc())\\.limit(10)'
+```
+
+### Engine Comparison
+
+| Feature | PySpark Engine | DuckDB Engine |
+|---------|----------------|---------------|
+| **Output Style** | Method chaining | SQL strings |
+| **Performance** | Distributed processing | In-memory columnar |
+| **Dependencies** | PySpark, Hadoop ecosystem | DuckDB only |
+| **Setup Complexity** | High (cluster setup) | Low (pip install) |
+| **Memory Usage** | Cluster memory | Single machine memory |
+| **Best For** | Big data, distributed workloads | Analytics, fast queries, prototyping |
+
+### Complex Query Example
+```python
+>>> from databathing import Pipeline
+>>> 
+>>> complex_query = """
+    SELECT department, AVG(salary) as avg_salary, COUNT(*) as emp_count
+    FROM employees 
+    WHERE salary > 50000 
+    GROUP BY department 
+    HAVING COUNT(*) > 5
+    ORDER BY avg_salary DESC
+    LIMIT 3
+"""
+>>> 
+>>> # DuckDB Output - clean SQL
+>>> duckdb_pipeline = Pipeline(complex_query, engine="duckdb")
+>>> print(duckdb_pipeline.parse())
+'result = duckdb.sql("SELECT department,avg(salary) AS avg_salary,count(*) AS emp_count FROM employees WHERE salary > 50000 GROUP BY department HAVING COUNT(*) > 5 ORDER BY avg_salary DESC LIMIT 3")'
+>>> 
+>>> # PySpark Output - method chaining
+>>> spark_pipeline = Pipeline(complex_query, engine="spark")
+>>> print(spark_pipeline.parse())
+'final_df = employees\\.filter("salary > 50000")\\.groupBy("department")\\.agg(avg(col("salary")).alias("avg_salary"),count(col("*")).alias("emp_count"))\\.filter("COUNT(*) > 5")\\.selectExpr("department","avg_salary","emp_count")\\.orderBy(col("avg_salary").desc())\\.limit(3)'
+```
+
+### Using Generated DuckDB Code
+```python
+import duckdb
+
+# Execute the generated code
+result = duckdb.sql("SELECT name,age FROM users WHERE age > 25 ORDER BY name ASC LIMIT 10")
+
+# Convert to different formats
+pandas_df = result.df()          # Pandas DataFrame
+arrow_table = result.arrow()     # PyArrow Table  
+python_data = result.fetchall()  # Python objects
+```
+
+### DuckDB Engine Features
+- ✅ **All SQL features supported**: SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
+- ✅ **Aggregation functions**: COUNT, SUM, AVG, MIN, MAX, etc.
+- ✅ **SELECT DISTINCT** support
+- ✅ **WITH statements** (Common Table Expressions)
+- ✅ **Complex expressions** and aliases
+- ⚠️ **Set operations** (UNION, INTERSECT, EXCEPT) - basic support
+- ⚠️ **JOINs** - generates SQL rather than relational API
+
+### Prerequisites for DuckDB Engine
+```bash
+pip install duckdb  # Required for DuckDB engine
+pip install databathing  # This package
+```
+
 ## Contributing
 
 In the event that the databathing is not working for you, you can help make this better but simply pasting your sql (or JSON) into a new issue. Extra points if you describe the problem. Even more points if you submit a PR with a test. If you also submit a fix, then you also have my gratitude. 
