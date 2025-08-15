@@ -6,17 +6,30 @@ import json
 import copy
 
 from databathing.py_bathing import py_bathing
+from databathing.engines import SparkEngine, DuckDBEngine
 
 
 class Pipeline:
-    def __init__(self, query):
+    def __init__(self, query, engine="spark"):
         # print(query)
         self.parsed_whole_query = parse(query)
         self.parsed_json_whole_query = json.loads(json.dumps(self.parsed_whole_query,indent=4))
         self.parsed_json_whole_query = self.parsed_json_whole_query
+        self.engine = engine.lower()
         self.with_ans = ""
         self.last_ans = ""
+        
+        # Validate engine choice
+        if self.engine not in ["spark", "duckdb"]:
+            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb")
 
+    def _get_engine_instance(self, query_data):
+        """Factory method to create engine instances based on selected engine"""
+        if self.engine == "spark":
+            return py_bathing(query_data)  # Keep backward compatibility
+        elif self.engine == "duckdb":
+            return DuckDBEngine(query_data)
+    
     def gen_with_pipeline(self, query):
         if "with" in query:
             with_stmts =  query["with"]
@@ -26,8 +39,8 @@ class Pipeline:
                 for with_stmt in with_stmts:
                     self.gen_with_pipeline(with_stmt)   
         else:
-            dbing = py_bathing(query["value"])
-            self.with_ans += query["name"] + " = " + dbing.parse() + "\n\n"
+            engine_instance = self._get_engine_instance(query["value"])
+            self.with_ans += query["name"] + " = " + engine_instance.parse() + "\n\n"
 
 
     def gen_last_pipeline(self, query):
@@ -36,8 +49,13 @@ class Pipeline:
         if "with" in query:
             del tmp_query["with"]
         
-        dbing = py_bathing(tmp_query)
-        self.last_ans = "final_df = " + dbing.parse() + "\n\n"
+        engine_instance = self._get_engine_instance(tmp_query)
+        
+        # Different variable naming based on engine
+        if self.engine == "duckdb":
+            self.last_ans = "result = " + engine_instance.parse() + "\n\n"
+        else:
+            self.last_ans = "final_df = " + engine_instance.parse() + "\n\n"
 
     def parse(self):
         final_ans = ""
