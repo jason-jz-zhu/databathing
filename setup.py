@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='databathing',
-    version='0.5.0',
+    version='0.5.1',
     description="Convert SQL queries to PySpark DataFrame operations",
     author="Jiazhen Zhu, Sanhe Hu",
     author_email="jason.jz.zhu@gmail.com, husanhe@email.com",

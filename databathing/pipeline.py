@@ -6,7 +6,7 @@ import json
 import copy
 
 from databathing.py_bathing import py_bathing
-from databathing.engines import SparkEngine, DuckDBEngine
+from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine
 
 
 class Pipeline:
@@ -20,8 +20,8 @@ class Pipeline:
         self.last_ans = ""
         
         # Validate engine choice
-        if self.engine not in ["spark", "duckdb"]:
-            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb")
+        if self.engine not in ["spark", "duckdb", "mojo"]:
+            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb, mojo")
 
     def _get_engine_instance(self, query_data):
         """Factory method to create engine instances based on selected engine"""
@@ -29,6 +29,8 @@ class Pipeline:
             return py_bathing(query_data)  # Keep backward compatibility
         elif self.engine == "duckdb":
             return DuckDBEngine(query_data)
+        elif self.engine == "mojo":
+            return MojoEngine(query_data)
     
     def gen_with_pipeline(self, query):
         if "with" in query:
@@ -54,6 +56,8 @@ class Pipeline:
         # Different variable naming based on engine
         if self.engine == "duckdb":
             self.last_ans = "result = " + engine_instance.parse() + "\n\n"
+        elif self.engine == "mojo":
+            self.last_ans = "# Mojo 🔥 High-Performance Code\n" + engine_instance.parse() + "\n\n"
         else:
             self.last_ans = "final_df = " + engine_instance.parse() + "\n\n"
 
