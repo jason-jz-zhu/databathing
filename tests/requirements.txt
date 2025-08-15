@@ -1,1 +1,3 @@
 mo-sql-parsing
+psutil
+pyspark
