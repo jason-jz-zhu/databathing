@@ -7,17 +7,21 @@ import copy
 
 from databathing.py_bathing import py_bathing
 from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine
+from databathing.validation.validator_factory import validate_code
 
 
 class Pipeline:
-    def __init__(self, query, engine="spark"):
+    def __init__(self, query, engine="spark", validate=True):
         # print(query)
+        self.original_query = query
         self.parsed_whole_query = parse(query)
         self.parsed_json_whole_query = json.loads(json.dumps(self.parsed_whole_query,indent=4))
         self.parsed_json_whole_query = self.parsed_json_whole_query
         self.engine = engine.lower()
         self.with_ans = ""
         self.last_ans = ""
+        self.validate_code = validate
+        self.validation_report = None
         
         # Validate engine choice
         if self.engine not in ["spark", "duckdb", "mojo"]:
@@ -68,7 +72,49 @@ class Pipeline:
             final_ans += self.with_ans
         self.gen_last_pipeline(self.parsed_json_whole_query)
         final_ans += self.last_ans
+        
+        # Validate generated code if requested
+        if self.validate_code and self.engine != "mojo":  # Skip validation for mojo for now
+            try:
+                self.validation_report = validate_code(final_ans, self.engine, self.original_query)
+            except Exception as e:
+                print(f"Warning: Code validation failed: {e}")
+                self.validation_report = None
+        
         return final_ans
+    
+    def get_validation_report(self):
+        """Get the validation report for the generated code"""
+        return self.validation_report
+    
+    def get_code_score(self):
+        """Get the overall code quality score (0-100)"""
+        if self.validation_report:
+            return self.validation_report.metrics.overall_score
+        return None
+    
+    def get_code_grade(self):
+        """Get the code quality grade (A-F)"""
+        if self.validation_report:
+            return self.validation_report.get_grade()
+        return None
+    
+    def is_code_valid(self):
+        """Check if the generated code is syntactically valid"""
+        if self.validation_report:
+            return self.validation_report.is_valid
+        return None
+    
+    def parse_with_validation(self):
+        """Parse and return both code and validation report"""
+        code = self.parse()
+        return {
+            'code': code,
+            'validation_report': self.validation_report,
+            'score': self.get_code_score(),
+            'grade': self.get_code_grade(),
+            'is_valid': self.is_code_valid()
+        }
 
 
 
