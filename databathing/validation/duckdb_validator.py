@@ -1,7 +1,12 @@
 import re
-import sqlparse
 from typing import List, Dict, Any
 from .code_validator import CodeValidator
+
+try:
+    import sqlparse
+    HAS_SQLPARSE = True
+except ImportError:
+    HAS_SQLPARSE = False
 
 
 class DuckDBValidator(CodeValidator):
@@ -41,17 +46,21 @@ class DuckDBValidator(CodeValidator):
             if not sql:
                 return False
             
-            # Try to parse SQL
-            try:
-                parsed = sqlparse.parse(sql)
-                if not parsed:
-                    return False
-                
-                # Check for basic SQL structure
-                return self._has_valid_sql_structure(sql)
-                
-            except Exception:
-                # If sqlparse fails, try basic pattern matching
+            # Try to parse SQL with sqlparse if available
+            if HAS_SQLPARSE:
+                try:
+                    parsed = sqlparse.parse(sql)
+                    if not parsed:
+                        return False
+                    
+                    # Check for basic SQL structure
+                    return self._has_valid_sql_structure(sql)
+                    
+                except Exception:
+                    # If sqlparse fails, try basic pattern matching
+                    return self._basic_sql_validation(sql)
+            else:
+                # Fallback to basic validation if sqlparse not available
                 return self._basic_sql_validation(sql)
                 
         except Exception:
