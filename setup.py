@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='databathing',
-    version='0.5.2',
-    description="Convert SQL queries to PySpark DataFrame operations",
+    version='0.6.0',
+    description="Convert SQL queries to PySpark and DuckDB code with validation and quality scoring",
     author="Jiazhen Zhu, Sanhe Hu",
     author_email="jason.jz.zhu@gmail.com, husanhe@email.com",
     maintainer="Jiazhen Zhu",
@@ -31,16 +31,19 @@ setuptools.setup(
         "Programming Language :: Python :: 3.11",
         'License :: OSI Approved :: MIT License'],
     license="MIT",
-    packages=['databathing'],
+    packages=setuptools.find_packages(),
     install_requires=[
           'mo-sql-parsing',
       ],
     extras_require={
         'dev': ['pytest', 'pytest-cov'],
         'test': ['pytest', 'pytest-cov'],
+        'validation': ['sqlparse>=0.4.0'],
+        'duckdb': ['duckdb'],
+        'all': ['sqlparse>=0.4.0', 'duckdb'],
     },
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords=['sql', 'spark', 'pyspark', 'etl', 'data', 'parser', 'converter'],
+    keywords=['sql', 'spark', 'pyspark', 'duckdb', 'etl', 'data', 'parser', 'converter', 'validation', 'quality'],
     python_requires=">=3.7",
 )
