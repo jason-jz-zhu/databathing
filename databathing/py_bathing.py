@@ -22,29 +22,79 @@ class py_bathing:
         if not from_stmt:
             return 
         if type(from_stmt) is str:
-            self.from_ans += format({ "from": from_stmt })[5:]
+            # Simple table name
+            self.from_ans += from_stmt + "."
         elif type(from_stmt) is dict:
             if "name" in from_stmt.keys():
                 self.from_ans += from_stmt['value']+".alias(\""+from_stmt['name']+"\")."
             elif "left join" in from_stmt.keys():
+                join_target = from_stmt['left join']
+                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+                elif isinstance(join_target, str):
+                    join_expr = join_target
+                else:
+                    join_expr = str(join_target)
                 self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['left join']['value']+".alias(\""+from_stmt['left join']['name']+"\")", 
+                    join_expr, 
                     "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
                     'left')
             elif "inner join" in from_stmt.keys():
+                join_target = from_stmt['inner join']
+                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+                elif isinstance(join_target, str):
+                    join_expr = join_target
+                else:
+                    join_expr = str(join_target)
                 self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['inner join']['value']+".alias(\""+from_stmt['inner join']['name']+"\")", 
+                    join_expr, 
                     "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
                     'inner')
             elif "right join" in from_stmt.keys():
+                join_target = from_stmt['right join']
+                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+                elif isinstance(join_target, str):
+                    join_expr = join_target
+                else:
+                    join_expr = str(join_target)
                 self.from_ans += "join({}, {}, \"{}\").".format( 
-                    from_stmt['right join']['value']+".alias(\""+from_stmt['right join']['name']+"\")", 
+                    join_expr, 
                     "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
                     'right')
+            elif "join" in from_stmt.keys():
+                # Handle generic JOIN (defaults to inner join)
+                join_target = from_stmt['join']
+                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                    # JOIN with alias: table AS alias
+                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+                elif isinstance(join_target, str):
+                    # Simple JOIN: just table name
+                    join_expr = join_target
+                else:
+                    # Fallback
+                    join_expr = str(join_target)
+                    
+                self.from_ans += "join({}, {}, \"{}\").".format( 
+                    join_expr, 
+                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
+                    'inner')
                 
         elif type(from_stmt) is list:
-            for item_from in from_stmt:
-                self._from_analyze(item_from)    
+            # Handle multiple FROM items (base table + JOINs)
+            if len(from_stmt) > 0:
+                # First item is the base table/CTE
+                self._from_analyze(from_stmt[0])
+                
+                # Subsequent items are JOINs that should be chained
+                for item_from in from_stmt[1:]:
+                    if isinstance(item_from, dict) and any(join_key in item_from for join_key in ["join", "left join", "inner join", "right join"]):
+                        # This is a JOIN operation, process it
+                        self._from_analyze(item_from)
+                    else:
+                        # Non-JOIN item (shouldn't happen in well-formed queries)
+                        self._from_analyze(item_from)    
     
     def _select_analyze(self, select_stmt):
 
