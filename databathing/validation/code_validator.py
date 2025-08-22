@@ -98,6 +98,20 @@ class CodeValidator(ABC):
                 rule="best_practices_check"
             )
         
+        # 4. Custom rules check
+        try:
+            from .custom_rules import get_custom_rules_registry
+            registry = get_custom_rules_registry()
+            custom_issues = registry.check_all_rules(code, engine_type)
+            for issue in custom_issues:
+                report.issues.append(issue)
+        except Exception as e:
+            report.add_issue(
+                ValidationStatus.WARNING,
+                f"Error checking custom rules: {str(e)}",
+                rule="custom_rules_check"
+            )
+        
         # 4. Add metadata
         report.metadata.update({
             'code_length': len(code),
