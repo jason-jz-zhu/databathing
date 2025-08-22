@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='databathing',
-    version='0.6.0',
-    description="Convert SQL queries to PySpark and DuckDB code with validation and quality scoring",
+    version='0.7.0',
+    description="Advanced SQL-to-code generator with multi-engine support, intelligent validation, caching, and async capabilities",
     author="Jiazhen Zhu, Sanhe Hu",
     author_email="jason.jz.zhu@gmail.com, husanhe@email.com",
     maintainer="Jiazhen Zhu",
