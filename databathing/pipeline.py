@@ -6,12 +6,12 @@ import json
 import copy
 
 from databathing.py_bathing import py_bathing
-from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine
+from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine, COEngine
 from databathing.validation.validator_factory import validate_code
 
 
 class Pipeline:
-    def __init__(self, query, engine="spark", validate=True):
+    def __init__(self, query, engine="spark", validate=True, security_config=None):
         # print(query)
         self.original_query = query
         self.parsed_whole_query = parse(query)
@@ -22,10 +22,11 @@ class Pipeline:
         self.last_ans = ""
         self.validate_code = validate
         self.validation_report = None
+        self.security_config = security_config or {}
         
         # Validate engine choice
-        if self.engine not in ["spark", "duckdb", "mojo"]:
-            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb, mojo")
+        if self.engine not in ["spark", "duckdb", "mojo", "co"]:
+            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb, mojo, co")
 
     def _get_engine_instance(self, query_data):
         """Factory method to create engine instances based on selected engine"""
@@ -35,6 +36,8 @@ class Pipeline:
             return DuckDBEngine(query_data)
         elif self.engine == "mojo":
             return MojoEngine(query_data)
+        elif self.engine == "co":
+            return COEngine(query_data, self.security_config)
     
     def gen_with_pipeline(self, query):
         if "with" in query:
@@ -73,6 +76,8 @@ class Pipeline:
             self.last_ans = "result = " + engine_instance.parse() + "\n\n"
         elif self.engine == "mojo":
             self.last_ans = "# Mojo 🔥 High-Performance Code\n" + engine_instance.parse() + "\n\n"
+        elif self.engine == "co":
+            self.last_ans = "co_secure_df = " + engine_instance.parse() + "\n\n"
         else:
             self.last_ans = "final_df = " + engine_instance.parse() + "\n\n"
     
@@ -121,7 +126,7 @@ class Pipeline:
         final_ans += self.last_ans
         
         # Validate generated code if requested
-        if self.validate_code and self.engine != "mojo":  # Skip validation for mojo for now
+        if self.validate_code and self.engine not in ["mojo", "co"]:  # Skip validation for mojo and co for now
             try:
                 self.validation_report = validate_code(final_ans, self.engine, self.original_query, use_cache=True)
             except ImportError as e:
