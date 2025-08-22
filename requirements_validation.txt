@@ -1,0 +1,2 @@
+# Additional dependencies for validation system
+sqlparse>=0.4.0  # For SQL parsing and validation in DuckDB validator
