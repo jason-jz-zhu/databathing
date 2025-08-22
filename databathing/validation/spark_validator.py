@@ -23,18 +23,18 @@ class SparkValidator(CodeValidator):
             'desc', 'asc', 'row_number', 'rank', 'dense_rank'
         }
         
-        # Performance anti-patterns
+        # Performance anti-patterns with severity weights (pattern, message, penalty)
         self.performance_antipatterns = [
-            (r'\.collect\(\)', 'Avoid collect() on large datasets'),
-            (r'\.toPandas\(\)', 'Use toPandas() carefully with large data'),
-            (r'\.count\(\).*\.count\(\)', 'Multiple count() calls can be expensive'),
-            (r'for.*\.collect\(\)', 'Avoid iterating over collected data'),
-            (r'\.rdd\.', 'Using RDD API instead of DataFrame API reduces optimization'),
-            (r'\.cache\(\).*\.cache\(\)', 'Unnecessary multiple cache() calls on same DataFrame'),
-            (r'\.show\(\).*\.show\(\)', 'Multiple show() calls can impact performance'),
-            (r'\.join\(.*\)\.join\(.*\)\.join\(.*\)', 'Complex multiple joins may need optimization'),
-            (r'\.selectExpr\(.*\*.*\)', 'Avoid SELECT * in selectExpr for performance'),
-            (r'\.groupBy\(.*\)\.count\(\)\.collect\(\)', 'Avoid collect() after groupBy operations')
+            (r'\.collect\(\)', 'Avoid collect() on large datasets', 40),  # High penalty
+            (r'\.toPandas\(\)', 'Use toPandas() carefully with large data', 25),
+            (r'\.count\(\).*\.count\(\)', 'Multiple count() calls can be expensive', 20),
+            (r'for.*\.collect\(\)', 'Avoid iterating over collected data', 35),
+            (r'\.rdd\.', 'Using RDD API instead of DataFrame API reduces optimization', 30),
+            (r'\.cache\(\).*\.cache\(\)', 'Unnecessary multiple cache() calls on same DataFrame', 15),
+            (r'\.show\(\).*\.show\(\)', 'Multiple show() calls can impact performance', 10),
+            (r'\.join\(.*\)\.join\(.*\)\.join\(.*\)', 'Complex multiple joins may need optimization', 25),
+            (r'\.selectExpr\(.*\*.*\)', 'Avoid SELECT * in selectExpr for performance', 45),  # Very high penalty!
+            (r'\.groupBy\(.*\)\.count\(\)\.collect\(\)', 'Avoid collect() after groupBy operations', 35)
         ]
     
     def validate_syntax(self, code: str) -> bool:
@@ -144,10 +144,10 @@ class SparkValidator(CodeValidator):
         """Estimate performance based on known patterns"""
         performance = 100
         
-        # Check for performance anti-patterns
-        for pattern, reason in self.performance_antipatterns:
+        # Check for performance anti-patterns with weighted penalties
+        for pattern, reason, penalty in self.performance_antipatterns:
             if re.search(pattern, code):
-                performance -= 20
+                performance -= penalty
         
         # Bonus for efficient operations
         if '.filter(' in code and '.select(' in code:
@@ -172,7 +172,7 @@ class SparkValidator(CodeValidator):
         issues = []
         
         # Check for performance issues
-        for pattern, message in self.performance_antipatterns:
+        for pattern, message, penalty in self.performance_antipatterns:
             if re.search(pattern, code):
                 issues.append(f"Performance: {message}")
         

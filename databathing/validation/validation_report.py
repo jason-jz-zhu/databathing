@@ -34,11 +34,11 @@ class ValidationMetrics:
     def overall_score(self) -> float:
         """Calculate weighted overall score"""
         weights = {
-            'syntax': 0.4,
-            'complexity': 0.2,
-            'readability': 0.2,
-            'performance': 0.1,
-            'maintainability': 0.1
+            'syntax': 0.3,          # Reduced from 40% to 30%
+            'complexity': 0.15,     # Reduced from 20% to 15%
+            'readability': 0.15,    # Reduced from 20% to 15%
+            'performance': 0.3,     # Increased from 10% to 30% - performance is critical!
+            'maintainability': 0.1  # Kept at 10%
         }
         
         return (
