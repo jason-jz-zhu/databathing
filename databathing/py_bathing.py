@@ -19,31 +19,49 @@ class py_bathing:
 
 
     def _joinfeat(self, from_stmt, srcjointype, dstjointype):
+        # Handle cross join
         if "cross join" in from_stmt.keys():
-            return "crossJoin({}).".format( 
-                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")")
+            join_target = from_stmt[f'{srcjointype} join']
+            if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+            elif isinstance(join_target, str):
+                join_expr = join_target
+            else:
+                join_expr = str(join_target)
+            return "crossJoin({}).".format(join_expr)
 
-        elif "and" in from_stmt['on']:
+        # Handle regular joins with ON conditions
+        join_target = from_stmt.get(f'{srcjointype} join', from_stmt.get('join'))
+        if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+            join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+        elif isinstance(join_target, str):
+            join_expr = join_target
+        else:
+            join_expr = str(join_target)
+
+        # Handle complex ON conditions with AND
+        if "and" in from_stmt['on']:
             eachand = []
             for theandvalue in from_stmt['on']['and']:
                 eachand.append("col(\""+str(theandvalue['eq'][0])+"\")" + "==" + "col(\""+str(theandvalue['eq'][1])+"\")" )
             return "join({}, {}, \"{}\").".format( 
-                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")", 
+                join_expr, 
                 " & ".join(eachand) , 
                 dstjointype)
         else:
+            # Simple ON condition
             eachand = "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")"
-            thereturn = "join({}, {}, \"{}\").".format( 
-                from_stmt[f'{srcjointype} join']['value']+".alias(\""+from_stmt[f'{srcjointype} join']['name']+"\")", 
+            return "join({}, {}, \"{}\").".format( 
+                join_expr, 
                 eachand , 
                 dstjointype)
-            return thereturn
 
     def _from_analyze(self, from_stmt):
         if not from_stmt:
             return 
         if type(from_stmt) is str:
-            self.from_ans += format({ "from": from_stmt })[5:]
+            # Simple table name
+            self.from_ans += from_stmt + "."
         elif type(from_stmt) is dict:
             if "name" in from_stmt.keys():
                 self.from_ans += from_stmt['value']+".alias(\""+from_stmt['name']+"\")."
@@ -53,10 +71,24 @@ class py_bathing:
                 self.from_ans += self._joinfeat(from_stmt, 'inner', 'inner')
             elif "right join" in from_stmt.keys():
                 self.from_ans += self._joinfeat(from_stmt, 'right', 'right')
+            elif "join" in from_stmt.keys():
+                # Handle generic JOIN (defaults to inner join) - our critical fix
+                self.from_ans += self._joinfeat(from_stmt, '', 'inner')
                 
         elif type(from_stmt) is list:
-            for item_from in from_stmt:
-                self._from_analyze(item_from)    
+            # Handle multiple FROM items (base table + JOINs)
+            if len(from_stmt) > 0:
+                # First item is the base table/CTE
+                self._from_analyze(from_stmt[0])
+                
+                # Subsequent items are JOINs that should be chained
+                for item_from in from_stmt[1:]:
+                    if isinstance(item_from, dict) and any(join_key in item_from for join_key in ["join", "left join", "inner join", "right join"]):
+                        # This is a JOIN operation, process it
+                        self._from_analyze(item_from)
+                    else:
+                        # Non-JOIN item (shouldn't happen in well-formed queries)
+                        self._from_analyze(item_from)    
     
     def _select_analyze(self, select_stmt):
 

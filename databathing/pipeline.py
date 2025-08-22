@@ -52,7 +52,18 @@ class Pipeline:
     def gen_last_pipeline(self, query):
         tmp_query = copy.deepcopy(query) 
 
+        # Handle CTE references in the main query
         if "with" in query:
+            # Extract CTE names for reference replacement
+            cte_names = []
+            if isinstance(query["with"], list):
+                cte_names = [cte["name"] for cte in query["with"]]
+            elif isinstance(query["with"], dict):
+                cte_names = [query["with"]["name"]]
+            
+            # Replace CTE references in FROM clause with variable names
+            self._replace_cte_references(tmp_query, cte_names)
+            
             del tmp_query["with"]
         
         engine_instance = self._get_engine_instance(tmp_query)
@@ -64,6 +75,42 @@ class Pipeline:
             self.last_ans = "# Mojo 🔥 High-Performance Code\n" + engine_instance.parse() + "\n\n"
         else:
             self.last_ans = "final_df = " + engine_instance.parse() + "\n\n"
+    
+    def _replace_cte_references(self, query, cte_names):
+        """Replace CTE references in query with actual variable names"""
+        if not cte_names:
+            return
+            
+        # Replace in FROM clause
+        if "from" in query:
+            self._replace_cte_in_from(query["from"], cte_names)
+    
+    def _replace_cte_in_from(self, from_clause, cte_names):
+        """Replace CTE references in FROM clause"""
+        if isinstance(from_clause, str):
+            # Simple table reference
+            if from_clause in cte_names:
+                # This is a CTE reference, replace with variable name
+                return from_clause  # Variable name is same as CTE name
+        elif isinstance(from_clause, dict):
+            # Table with alias or JOIN
+            if "value" in from_clause and from_clause["value"] in cte_names:
+                # This references a CTE, keep the variable name
+                pass  # Variable name is same as CTE name
+            if "join" in from_clause and "value" in from_clause["join"]:
+                if from_clause["join"]["value"] in cte_names:
+                    # JOIN references a CTE, keep the variable name
+                    pass  # Variable name is same as CTE name
+            # Handle other join types
+            for join_type in ["left join", "inner join", "right join"]:
+                if join_type in from_clause and "value" in from_clause[join_type]:
+                    if from_clause[join_type]["value"] in cte_names:
+                        # JOIN references a CTE, keep the variable name
+                        pass  # Variable name is same as CTE name
+        elif isinstance(from_clause, list):
+            # Multiple FROM items
+            for item in from_clause:
+                self._replace_cte_in_from(item, cte_names)
 
     def parse(self):
         final_ans = ""
