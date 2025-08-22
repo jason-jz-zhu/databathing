@@ -108,19 +108,28 @@ class CodeValidator(ABC):
         return report
     
     def _count_method_chains(self, code: str) -> int:
-        """Count method chaining depth"""
-        # Count consecutive dots (method chaining)
-        max_chain = 0
-        current_chain = 0
+        """Count method chaining depth more accurately"""
+        # Remove strings to avoid counting dots in string literals
+        code_no_strings = re.sub(r'["\'][^"\']*["\']', '', code)
         
-        for char in code:
-            if char == '.':
-                current_chain += 1
-            elif char in ['\n', ' ', '\t']:
+        # Split by lines and count max chaining per logical statement
+        max_chain = 0
+        
+        # Handle line continuation with backslashes
+        lines = code_no_strings.replace('\\\n', ' ').split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
                 continue
-            else:
-                max_chain = max(max_chain, current_chain)
-                current_chain = 0
+                
+            # Count method calls (dots followed by method names)
+            # Avoid counting decimal numbers or attribute access
+            method_pattern = r'\.([a-zA-Z_][a-zA-Z0-9_]*)\s*\('
+            methods = re.findall(method_pattern, line)
+            chain_length = len(methods)
+            
+            max_chain = max(max_chain, chain_length)
         
         return max_chain
     

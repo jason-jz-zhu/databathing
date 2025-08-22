@@ -29,7 +29,12 @@ class SparkValidator(CodeValidator):
             (r'\.toPandas\(\)', 'Use toPandas() carefully with large data'),
             (r'\.count\(\).*\.count\(\)', 'Multiple count() calls can be expensive'),
             (r'for.*\.collect\(\)', 'Avoid iterating over collected data'),
-            (r'\.rdd\.', 'Using RDD API instead of DataFrame API reduces optimization')
+            (r'\.rdd\.', 'Using RDD API instead of DataFrame API reduces optimization'),
+            (r'\.cache\(\).*\.cache\(\)', 'Unnecessary multiple cache() calls on same DataFrame'),
+            (r'\.show\(\).*\.show\(\)', 'Multiple show() calls can impact performance'),
+            (r'\.join\(.*\)\.join\(.*\)\.join\(.*\)', 'Complex multiple joins may need optimization'),
+            (r'\.selectExpr\(.*\*.*\)', 'Avoid SELECT * in selectExpr for performance'),
+            (r'\.groupBy\(.*\)\.count\(\)\.collect\(\)', 'Avoid collect() after groupBy operations')
         ]
     
     def validate_syntax(self, code: str) -> bool:

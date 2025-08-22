@@ -3,11 +3,19 @@ from .base_engine import BaseEngine
 
 
 class MojoEngine(BaseEngine):
-    """Mojo 🔥 high-performance data processing code generator
+    """Mojo 🔥 high-performance data processing code generator [PROTOTYPE]
     
-    Generates Mojo code for SQL operations leveraging:
-    - SIMD vectorized operations
-    - Zero-copy data structures  
+    ⚠️  WARNING: This is a conceptual prototype engine that generates
+    experimental Mojo-style code. The generated code:
+    - Uses fictional functions like load_table(), simd_filter(), simd_groupby()
+    - Will NOT compile or run in actual Mojo environment
+    - Is intended for demonstration and future development
+    
+    For production use, please use 'spark' or 'duckdb' engines.
+    
+    Future vision - generates Mojo code for SQL operations leveraging:
+    - SIMD vectorized operations  
+    - Zero-copy data structures
     - Memory-safe array operations
     - High-performance numerical computing
     """

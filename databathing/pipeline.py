@@ -77,8 +77,16 @@ class Pipeline:
         if self.validate_code and self.engine != "mojo":  # Skip validation for mojo for now
             try:
                 self.validation_report = validate_code(final_ans, self.engine, self.original_query)
+            except ImportError as e:
+                print(f"Warning: Validation dependencies not available: {e}")
+                print("Install validation dependencies with: pip install databathing[validation]")
+                self.validation_report = None
+            except ValueError as e:
+                print(f"Warning: Validation configuration error: {e}")
+                self.validation_report = None
             except Exception as e:
-                print(f"Warning: Code validation failed: {e}")
+                print(f"Warning: Unexpected validation error: {e}")
+                print("Please report this issue at: https://github.com/jason-jz-zhu/databathing/issues")
                 self.validation_report = None
         
         return final_ans

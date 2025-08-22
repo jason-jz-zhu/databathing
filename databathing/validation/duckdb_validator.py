@@ -61,6 +61,13 @@ class DuckDBValidator(CodeValidator):
                     return self._basic_sql_validation(sql)
             else:
                 # Fallback to basic validation if sqlparse not available
+                import warnings
+                warnings.warn(
+                    "sqlparse not available. Using basic SQL validation. "
+                    "Install with 'pip install sqlparse' for advanced SQL validation.",
+                    UserWarning,
+                    stacklevel=2
+                )
                 return self._basic_sql_validation(sql)
                 
         except Exception:
@@ -74,12 +81,20 @@ class DuckDBValidator(CodeValidator):
         assignment_pattern = r'^\w+\s*=\s*'
         code = re.sub(assignment_pattern, '', code)
         
-        # Extract SQL from duckdb.sql("...") pattern
-        duckdb_pattern = r'duckdb\.sql\(["\']([^"\']+)["\']\)'
-        match = re.search(duckdb_pattern, code, re.DOTALL)
+        # More robust SQL extraction that handles nested quotes and escape sequences
+        # Try different quote patterns
+        patterns = [
+            r'duckdb\.sql\("""([^"]+(?:"{1,2}[^"]*)*?)"""\)',  # Triple quotes
+            r'duckdb\.sql\(\'\'\'([^\']+(?:\'{1,2}[^\']*)*?)\'\'\'\)',  # Triple single quotes
+            r'duckdb\.sql\("([^"\\]*(?:\\.[^"\\]*)*)"\)',  # Double quotes with escapes
+            r'duckdb\.sql\(\'([^\'\\]*(?:\\.[^\'\\]*)*)\'\)',  # Single quotes with escapes
+            r'duckdb\.sql\(["\']([^"\']+)["\']\)'  # Simple fallback
+        ]
         
-        if match:
-            return match.group(1).strip()
+        for pattern in patterns:
+            match = re.search(pattern, code, re.DOTALL)
+            if match:
+                return match.group(1).strip()
         
         return ""
     
