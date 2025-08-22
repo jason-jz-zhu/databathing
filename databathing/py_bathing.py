@@ -4,7 +4,6 @@ from mo_sql_parsing import format
 class py_bathing:
     def __init__(self, parsed_json_whole_query):
         self.parsed_json_whole_query = parsed_json_whole_query
-        print(f"""self.parsed_json_whole_query: {self.parsed_json_whole_query}""")
         self.distinct_flag = False
         self.from_ans = ""
         self.select_ans = ""
@@ -60,7 +59,6 @@ class py_bathing:
                 self._from_analyze(item_from)    
     
     def _select_analyze(self, select_stmt):
-        print(f"""select_stmt: {select_stmt}""")
 
         if not select_stmt:
             return
@@ -73,7 +71,10 @@ class py_bathing:
             return
         if type(select_stmt) is dict:
             if 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() in self.agg_list:
-                self.select_ans  += "\""+ select_stmt['name'] +"\","
+                if 'name' in select_stmt:
+                    self.select_ans  += "\""+ select_stmt['name'] +"\","
+                else:
+                    self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
             elif 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() == "create_struct":
                 self.select_ans  += "\"" + format({ "select": select_stmt })[14:] + "\","
             else:
@@ -94,7 +95,11 @@ class py_bathing:
         if type(agg_stmt) is dict:
             if type(agg_stmt["value"]) is dict and list(agg_stmt["value"].keys())[0].lower() in self.agg_list:
                 for funct, alias in agg_stmt["value"].items():
-                    self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, agg_stmt["name"])
+                    if "name" in agg_stmt:
+                        self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, agg_stmt["name"])
+                    else:
+                        # Generate a default alias if name is not provided
+                        self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, f"{funct}_{alias}")
 
         elif type(agg_stmt) is list:
             for item in agg_stmt:
@@ -211,7 +216,6 @@ class py_bathing:
 
             #handle select
             elif str(method).lower() in ["select", "select_distinct"]:
-                print(f"""stmt: {stmt}""")
                 self._select_analyze(stmt)
                 select_final_ans = self.select_ans[:-1]
                 self.distinct_flag = True if str(method) == "select_distinct" else  False
