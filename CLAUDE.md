@@ -85,3 +85,7 @@ final_df = Test\
 
 - Simply don't include the "Co-Authored-By: Claude" line in commit messages
 - always to update version if push the code
+- don't git add, commit and push for each edit
+- before we git add, commit, push from different branch, pls update version
+- don't add below
+🤖 Generated with [Claude Code](https://claude.ai/code)

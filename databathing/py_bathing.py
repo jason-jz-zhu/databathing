@@ -18,6 +18,44 @@ class py_bathing:
         self.agg_list = ["sum", "avg", "max", "min", "mean", "count", "collect_list", "collect_set"]
 
 
+    def _joinfeat(self, from_stmt, srcjointype, dstjointype):
+        # Handle cross join
+        if "cross join" in from_stmt.keys():
+            join_target = from_stmt[f'{srcjointype} join']
+            if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+                join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+            elif isinstance(join_target, str):
+                join_expr = join_target
+            else:
+                join_expr = str(join_target)
+            return "crossJoin({}).".format(join_expr)
+
+        # Handle regular joins with ON conditions
+        join_target = from_stmt.get(f'{srcjointype} join', from_stmt.get('join'))
+        if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
+            join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
+        elif isinstance(join_target, str):
+            join_expr = join_target
+        else:
+            join_expr = str(join_target)
+
+        # Handle complex ON conditions with AND
+        if "and" in from_stmt['on']:
+            eachand = []
+            for theandvalue in from_stmt['on']['and']:
+                eachand.append("col(\""+str(theandvalue['eq'][0])+"\")" + "==" + "col(\""+str(theandvalue['eq'][1])+"\")" )
+            return "join({}, {}, \"{}\").".format( 
+                join_expr, 
+                " & ".join(eachand) , 
+                dstjointype)
+        else:
+            # Simple ON condition
+            eachand = "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")"
+            return "join({}, {}, \"{}\").".format( 
+                join_expr, 
+                eachand , 
+                dstjointype)
+
     def _from_analyze(self, from_stmt):
         if not from_stmt:
             return 
@@ -27,59 +65,15 @@ class py_bathing:
         elif type(from_stmt) is dict:
             if "name" in from_stmt.keys():
                 self.from_ans += from_stmt['value']+".alias(\""+from_stmt['name']+"\")."
-            elif "left join" in from_stmt.keys():
-                join_target = from_stmt['left join']
-                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
-                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
-                elif isinstance(join_target, str):
-                    join_expr = join_target
-                else:
-                    join_expr = str(join_target)
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    join_expr, 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'left')
+            elif "left join" in from_stmt.keys(): 
+                self.from_ans += self._joinfeat(from_stmt, 'left', 'left')
             elif "inner join" in from_stmt.keys():
-                join_target = from_stmt['inner join']
-                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
-                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
-                elif isinstance(join_target, str):
-                    join_expr = join_target
-                else:
-                    join_expr = str(join_target)
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    join_expr, 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'inner')
+                self.from_ans += self._joinfeat(from_stmt, 'inner', 'inner')
             elif "right join" in from_stmt.keys():
-                join_target = from_stmt['right join']
-                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
-                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
-                elif isinstance(join_target, str):
-                    join_expr = join_target
-                else:
-                    join_expr = str(join_target)
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    join_expr, 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'right')
+                self.from_ans += self._joinfeat(from_stmt, 'right', 'right')
             elif "join" in from_stmt.keys():
-                # Handle generic JOIN (defaults to inner join)
-                join_target = from_stmt['join']
-                if isinstance(join_target, dict) and 'value' in join_target and 'name' in join_target:
-                    # JOIN with alias: table AS alias
-                    join_expr = join_target['value']+".alias(\""+join_target['name']+"\")"
-                elif isinstance(join_target, str):
-                    # Simple JOIN: just table name
-                    join_expr = join_target
-                else:
-                    # Fallback
-                    join_expr = str(join_target)
-                    
-                self.from_ans += "join({}, {}, \"{}\").".format( 
-                    join_expr, 
-                    "col(\""+str(from_stmt['on']['eq'][0])+"\")" + "==" + "col(\""+str(from_stmt['on']['eq'][1])+"\")" , 
-                    'inner')
+                # Handle generic JOIN (defaults to inner join) - our critical fix
+                self.from_ans += self._joinfeat(from_stmt, '', 'inner')
                 
         elif type(from_stmt) is list:
             # Handle multiple FROM items (base table + JOINs)

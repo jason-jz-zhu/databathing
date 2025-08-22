@@ -25,3 +25,19 @@ class TestJoinOn(TestCase):
         ans = pipeline.parse()
         expected = """final_df = Test.alias("t1").join(Test.alias("t2"), col("t1.id")==col("t2.id"), "left")\\\n.selectExpr("t1.id AS id","t1.val AS t1_val","t2.val AS t1_val")\n\n"""
         self.assertEqual(ans, expected)
+
+    def test_multiple_join_conditions(self):
+        """Test JOIN with multiple conditions using AND"""
+        sql = """
+        SELECT 
+            t1.id as id, 
+            t1.val as t1_val,
+            t2.val as t2_val
+        FROM Test t1
+        LEFT JOIN Test t2
+        ON t1.id = t2.id AND t1.id2 = t2.id2
+        """
+        pipeline = Pipeline(sql)
+        ans = pipeline.parse()
+        expected = """final_df = Test.alias("t1").join(Test.alias("t2"), col("t1.id")==col("t2.id") & col("t1.id2")==col("t2.id2"), "left")\\\n.selectExpr("t1.id AS id","t1.val AS t1_val","t2.val AS t2_val")\n\n"""
+        self.assertEqual(ans, expected)

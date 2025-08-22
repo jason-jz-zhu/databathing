@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='databathing',
-    version='0.7.4',
+    version='0.7.5',
     description="Advanced SQL-to-code generator with multi-engine support, intelligent validation, caching, and async capabilities",
     author="Jiazhen Zhu, Sanhe Hu",
     author_email="jason.jz.zhu@gmail.com, husanhe@email.com",
