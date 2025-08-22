@@ -25,8 +25,21 @@ class ValidatorFactory:
         return ["spark", "duckdb"]
 
 
-def validate_code(code: str, engine_type: str, original_sql: str = "", use_cache: bool = True):
-    """Convenience function to validate code with appropriate validator"""
+def validate_code(code: str, engine_type: str = None, original_sql: str = "", use_cache: bool = True, engine: str = None):
+    """Convenience function to validate code with appropriate validator
+    
+    Args:
+        code: The code to validate
+        engine_type: Engine type (preferred parameter name)
+        original_sql: Original SQL query (optional)
+        use_cache: Whether to use caching
+        engine: Engine type (alternative parameter name for backward compatibility)
+    """
+    # Handle backward compatibility - accept both 'engine_type' and 'engine'
+    if engine_type is None and engine is not None:
+        engine_type = engine
+    elif engine_type is None and engine is None:
+        raise ValueError("Must specify either 'engine_type' or 'engine' parameter")
     if use_cache:
         from .validation_cache import get_validation_cache
         cache = get_validation_cache()
