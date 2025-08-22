@@ -59,7 +59,10 @@ class py_bathing:
             return
         if type(select_stmt) is dict:
             if 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() in self.agg_list:
-                self.select_ans  += "\""+ select_stmt['name'] +"\","
+                if 'name' in select_stmt:
+                    self.select_ans  += "\""+ select_stmt['name'] +"\","
+                else:
+                    self.select_ans  += "\"" + format({ "select": select_stmt })[7:] + "\","
             elif 'value' in select_stmt and isinstance(select_stmt["value"], dict) and list(select_stmt["value"].keys())[0].lower() == "create_struct":
                 self.select_ans  += "\"" + format({ "select": select_stmt })[14:] + "\","
             else:
@@ -80,7 +83,11 @@ class py_bathing:
         if type(agg_stmt) is dict:
             if type(agg_stmt["value"]) is dict and list(agg_stmt["value"].keys())[0].lower() in self.agg_list:
                 for funct, alias in agg_stmt["value"].items():
-                    self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, agg_stmt["name"])
+                    if "name" in agg_stmt:
+                        self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, agg_stmt["name"])
+                    else:
+                        # Generate a default alias if name is not provided
+                        self.agg_ans += "{}(col(\"{}\")).alias(\"{}\"),".format(funct, alias, f"{funct}_{alias}")
 
         elif type(agg_stmt) is list:
             for item in agg_stmt:
