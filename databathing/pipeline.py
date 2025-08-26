@@ -6,28 +6,74 @@ import json
 import copy
 
 from databathing.py_bathing import py_bathing
-from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine, COEngine
+from databathing.engines import SparkEngine, DuckDBEngine, MojoEngine
 from databathing.validation.validator_factory import validate_code
+from databathing.auto_selection import AutoEngineSelector, SelectionContext
 
 
 class Pipeline:
-    def __init__(self, query, engine="spark", validate=True, security_config=None):
-        # print(query)
+    def __init__(self, query, engine=None, auto_engine=False, validate=True, context=None):
+        # Store original query and parse it
         self.original_query = query
         self.parsed_whole_query = parse(query)
-        self.parsed_json_whole_query = json.loads(json.dumps(self.parsed_whole_query,indent=4))
-        self.parsed_json_whole_query = self.parsed_json_whole_query
-        self.engine = engine.lower()
+        self.parsed_json_whole_query = json.loads(json.dumps(self.parsed_whole_query, indent=4))
+        
+        # Initialize auto-selection state
+        self.auto_selected = False
+        self.selection_result = None
+        
+        # Handle engine selection
+        if auto_engine:
+            # Auto-select engine (only chooses between Spark and DuckDB)
+            self.engine = self._auto_select_engine(query, self.parsed_json_whole_query, context)
+            self.auto_selected = True
+        else:
+            # Manual engine selection (supports all engines including Mojo)
+            self.engine = (engine or "spark").lower()
+            self.auto_selected = False
+        
+        # Initialize other attributes
         self.with_ans = ""
         self.last_ans = ""
         self.validate_code = validate
         self.validation_report = None
-        self.security_config = security_config or {}
         
-        # Validate engine choice
-        if self.engine not in ["spark", "duckdb", "mojo", "co"]:
-            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb, mojo, co")
+        # Validate engine choice (supports spark, duckdb, mojo)
+        if self.engine not in ["spark", "duckdb", "mojo"]:
+            raise ValueError(f"Unsupported engine: {engine}. Choose from: spark, duckdb, mojo")
 
+    def _auto_select_engine(self, query, parsed_query, context):
+        """Auto-select engine using intelligent analysis"""
+        try:
+            # Create auto-engine selector
+            selector = AutoEngineSelector()
+            
+            # Convert context parameter to SelectionContext if provided
+            selection_context = None
+            if context:
+                if isinstance(context, dict):
+                    selection_context = SelectionContext(**context)
+                elif isinstance(context, SelectionContext):
+                    selection_context = context
+                else:
+                    # Try to create context from object attributes
+                    selection_context = SelectionContext()
+                    for attr in ['data_size_hint', 'performance_priority', 'workload_type', 
+                               'latency_requirement', 'fault_tolerance']:
+                        if hasattr(context, attr):
+                            setattr(selection_context, attr, getattr(context, attr))
+            
+            # Perform selection
+            result = selector.select_engine(query, parsed_query, selection_context)
+            self.selection_result = result
+            
+            return result.engine
+            
+        except Exception as e:
+            # Fallback to Spark if auto-selection fails
+            print(f"Warning: Auto-selection failed ({e}), defaulting to Spark")
+            return "spark"
+    
     def _get_engine_instance(self, query_data):
         """Factory method to create engine instances based on selected engine"""
         if self.engine == "spark":
@@ -36,8 +82,6 @@ class Pipeline:
             return DuckDBEngine(query_data)
         elif self.engine == "mojo":
             return MojoEngine(query_data)
-        elif self.engine == "co":
-            return COEngine(query_data, self.security_config)
     
     def gen_with_pipeline(self, query):
         if "with" in query:
@@ -76,8 +120,6 @@ class Pipeline:
             self.last_ans = "result = " + engine_instance.parse() + "\n\n"
         elif self.engine == "mojo":
             self.last_ans = "# Mojo 🔥 High-Performance Code\n" + engine_instance.parse() + "\n\n"
-        elif self.engine == "co":
-            self.last_ans = "co_secure_df = " + engine_instance.parse() + "\n\n"
         else:
             self.last_ans = "final_df = " + engine_instance.parse() + "\n\n"
     
@@ -126,7 +168,7 @@ class Pipeline:
         final_ans += self.last_ans
         
         # Validate generated code if requested
-        if self.validate_code and self.engine not in ["mojo", "co"]:  # Skip validation for mojo and co for now
+        if self.validate_code and self.engine != "mojo":  # Skip validation for mojo for now
             try:
                 self.validation_report = validate_code(final_ans, self.engine, self.original_query, use_cache=True)
             except ImportError as e:
@@ -168,13 +210,73 @@ class Pipeline:
     def parse_with_validation(self):
         """Parse and return both code and validation report"""
         code = self.parse()
-        return {
+        result = {
             'code': code,
             'validation_report': self.validation_report,
             'score': self.get_code_score(),
             'grade': self.get_code_grade(),
             'is_valid': self.is_code_valid()
         }
+        
+        # Add auto-selection info if engine was auto-selected
+        if self.auto_selected and self.selection_result:
+            result['auto_selection'] = {
+                'selected_engine': self.selection_result.engine,
+                'confidence': self.selection_result.confidence,
+                'reasoning': self.selection_result.reasoning,
+                'rule_name': self.selection_result.rule_name,
+                'analysis_time_ms': self.selection_result.analysis_time_ms
+            }
+        
+        return result
+    
+    # Auto-selection information methods
+    def get_selection_info(self):
+        """Get information about engine selection (auto or manual)"""
+        if self.auto_selected and self.selection_result:
+            return {
+                'method': 'auto',
+                'selected_engine': self.selection_result.engine,
+                'confidence': self.selection_result.confidence,
+                'reasoning': self.selection_result.reasoning,
+                'rule_name': self.selection_result.rule_name,
+                'analysis_time_ms': self.selection_result.analysis_time_ms
+            }
+        else:
+            return {
+                'method': 'manual',
+                'selected_engine': self.engine,
+                'reasoning': 'Manually specified engine'
+            }
+    
+    def get_selection_reasoning(self):
+        """Get human-readable explanation for engine selection"""
+        if self.auto_selected and self.selection_result:
+            return self.selection_result.reasoning
+        else:
+            return f"Engine '{self.engine}' was manually specified"
+    
+    def get_selection_confidence(self):
+        """Get confidence score for auto-selected engine (0.0-1.0)"""
+        if self.auto_selected and self.selection_result:
+            return self.selection_result.confidence
+        else:
+            return 1.0  # Manual selection has full confidence
+    
+    def was_auto_selected(self):
+        """Check if engine was automatically selected"""
+        return self.auto_selected
+    
+    def get_detailed_selection_analysis(self):
+        """Get detailed analysis used for engine selection"""
+        if self.auto_selected and self.selection_result:
+            return self.selection_result.to_dict()
+        else:
+            return {
+                'method': 'manual',
+                'engine': self.engine,
+                'analysis': 'No analysis performed for manual selection'
+            }
 
 
 

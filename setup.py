@@ -5,8 +5,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='databathing',
-    version='0.8.0',
-    description="Advanced SQL-to-code generator with multi-engine support, banking compliance (COEngine), intelligent validation, caching, and async capabilities",
+    version='0.9.1',
+    description="Advanced SQL-to-code generator with intelligent auto-selection, multi-engine support, validation, and performance optimization",
     author="Jiazhen Zhu, Sanhe Hu",
     author_email="jason.jz.zhu@gmail.com, husanhe@email.com",
     maintainer="Jiazhen Zhu",
@@ -44,6 +44,6 @@ setuptools.setup(
     },
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords=['sql', 'spark', 'pyspark', 'duckdb', 'banking', 'compliance', 'pci', 'etl', 'data', 'parser', 'converter', 'validation', 'quality', 'fintech'],
+    keywords=['sql', 'spark', 'pyspark', 'duckdb', 'etl', 'data', 'parser', 'converter', 'validation', 'quality', 'auto-selection', 'intelligent', 'optimization'],
     python_requires=">=3.7",
 )
